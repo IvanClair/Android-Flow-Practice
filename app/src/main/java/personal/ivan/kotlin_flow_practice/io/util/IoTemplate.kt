@@ -7,56 +7,41 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 
 /**
- * @property N network response
- * @property C core data
+ * @property D origin data
  * @property R result
  */
 @ExperimentalCoroutinesApi
-abstract class IoTemplate<N, C, R>(private val generalErrorMessage: String) {
-
-    companion object {
-        const val ERROR_CODE_UNKNOWN = -1
-    }
+abstract class IoTemplate<D, R> {
 
     // Flow of IO
-    private val ioFlow: Flow<IoStatus<R>> = flow<C> {
-        // fetch from data base
-        val dbResponse = loadFromDatabase()
-        val validCoreDataFromDatabase =
-            dbResponse != null && validateCoreDataFromDatabase(c = dbResponse)
-        if (validCoreDataFromDatabase) {
-            emit(dbResponse!!)
-        }
+    private val ioFlow: Flow<IoStatus<R>> = flow {
+        // load data from database
+        val dataFromDb = loadFromDb()
+        val passValidationFromDb = validateFromDb(d = dataFromDb)
+        if (passValidationFromDb) emit(dataFromDb!!)
 
-        // fetch from network
-        val networkResponse = loadFromNetwork()
+        // load data from network
+        val dataFromNetwork = loadFromNetwork()
         when {
             // data from network match expectation
-            networkResponse != null && validateNetworkResponse(n = networkResponse) -> {
-                val coreData = fetchCoreDataFromNetworkResponse(n = networkResponse)
-                saveCoreDataToDatabase(o = coreData)
-                emit(coreData)
+            validateFromNetwork(d = dataFromNetwork) -> {
+                saveToDb(d = dataFromNetwork)
+                emit(dataFromNetwork)
             }
 
             // throw exception if data from network has error, also loaded from database failed
-            networkResponse != null && !validCoreDataFromDatabase -> {
-                val errorInfo = parseErrorFromNetworkResponse(n = networkResponse)
-                throw NetworkResponseException(code = errorInfo.first, message = errorInfo.second)
-            }
-
-            // data from network failed
-            else -> throw Exception()
+            !passValidationFromDb -> throw parseApiException(d = dataFromNetwork)
         }
     }
-        .map { IoStatus.Succeed(data = convertCoreDataToResult(c = it)) as IoStatus<R> }
+        .map {
+            val result =
+                IoStatus.Succeed(data = convertToResult(d = it)) as IoStatus<R>
+            result
+        }
         .onStart { emit(IoStatus.Loading()) }
         .catch {
-            emit(
-                IoStatus.Failed(
-                    code = if (it is NetworkResponseException) it.code else ERROR_CODE_UNKNOWN,
-                    message = if (it is NetworkResponseException) it.message else generalErrorMessage
-                )
-            )
+            val exceptionInfo = handleException(exception = it)
+            emit(IoStatus.Failed(exceptionInfo.first, exceptionInfo.second))
         }
         .flowOn(Dispatchers.IO)
 
@@ -72,21 +57,21 @@ abstract class IoTemplate<N, C, R>(private val generalErrorMessage: String) {
 
     // region Override Functions
 
-    abstract suspend fun loadFromDatabase(): C?
+    abstract suspend fun loadFromDb(): D?
 
-    abstract suspend fun validateCoreDataFromDatabase(c: C): Boolean
+    abstract suspend fun validateFromDb(d: D?): Boolean
 
-    abstract suspend fun loadFromNetwork(): N?
+    abstract suspend fun loadFromNetwork(): D
 
-    abstract suspend fun validateNetworkResponse(n: N): Boolean
+    abstract suspend fun validateFromNetwork(d: D?): Boolean
 
-    abstract suspend fun fetchCoreDataFromNetworkResponse(n: N): C
+    abstract suspend fun saveToDb(d: D)
 
-    abstract suspend fun saveCoreDataToDatabase(o: C)
+    abstract suspend fun parseApiException(d: D): ApiException
 
-    abstract suspend fun parseErrorFromNetworkResponse(n: N): Pair<Int, String>
+    abstract suspend fun convertToResult(d: D): R
 
-    abstract suspend fun convertCoreDataToResult(c: C): R
+    abstract suspend fun handleException(exception: Throwable): Pair<Int, String>
 
     // endregion
 }
@@ -103,4 +88,4 @@ sealed class IoStatus<T> {
 /**
  * Exception for IO process
  */
-data class NetworkResponseException(val code: Int, override val message: String) : Exception()
+data class ApiException(val code: Int, override val message: String) : Exception()

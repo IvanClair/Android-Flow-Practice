@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import personal.ivan.kotlin_flow_practice.io.util.IoStatus
@@ -24,6 +25,7 @@ constructor(private val repository: GithubRepository) : ViewModel() {
 
     fun getUserDetails(): LiveData<IoStatus<String>> = repository.getUserDetails()
 
+    @FlowPreview
     fun aaa() {
         viewModelScope.launch {
             repository.aaa().collect {

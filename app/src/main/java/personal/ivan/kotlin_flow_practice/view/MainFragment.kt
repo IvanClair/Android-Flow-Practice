@@ -6,19 +6,20 @@ import android.view.View
 import android.widget.Button
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import personal.ivan.kotlin_flow_practice.R
 import personal.ivan.kotlin_flow_practice.io.util.IoStatus
 import personal.ivan.kotlin_flow_practice.viewmodel.MainViewModel
 
+@FlowPreview
 @ExperimentalCoroutinesApi
 @AndroidEntryPoint
 class MainFragment : Fragment(R.layout.main_fragment) {
 
     companion object {
-        val TAG = MainFragment::class.java.simpleName
+        val TAG: String = MainFragment::class.java.simpleName
         fun newInstance() = MainFragment()
     }
 
@@ -42,7 +43,7 @@ class MainFragment : Fragment(R.layout.main_fragment) {
             .setOnClickListener {
                 viewModel.getUserList().observe(
                     viewLifecycleOwner,
-                    Observer {
+                    {
                         when (it) {
                             is IoStatus.Loading -> Log.d(TAG, "status loading")
                             is IoStatus.Failed -> Log.d(TAG, "status failed")
@@ -62,7 +63,7 @@ class MainFragment : Fragment(R.layout.main_fragment) {
             .setOnClickListener {
                 viewModel.getUserDetails().observe(
                     viewLifecycleOwner,
-                    Observer {
+                    {
                         when (it) {
                             is IoStatus.Loading -> Log.d(TAG, "status loading")
                             is IoStatus.Failed -> Log.d(TAG, "status failed")
