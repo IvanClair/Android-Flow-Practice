@@ -46,8 +46,8 @@ class MainFragment : Fragment(R.layout.main_fragment) {
                     {
                         when (it) {
                             is IoStatus.Loading -> Log.d(TAG, "status loading")
-                            is IoStatus.Failed -> Log.d(TAG, "status failed")
-                            is IoStatus.Succeed -> Log.d(TAG, "status succeed")
+                            is IoStatus.Fail -> Log.d(TAG, "status failed")
+                            is IoStatus.Success -> Log.d(TAG, "status succeed")
                         }
                     })
             }
@@ -66,8 +66,8 @@ class MainFragment : Fragment(R.layout.main_fragment) {
                     {
                         when (it) {
                             is IoStatus.Loading -> Log.d(TAG, "status loading")
-                            is IoStatus.Failed -> Log.d(TAG, "status failed")
-                            is IoStatus.Succeed -> Log.d(TAG, "status succeed")
+                            is IoStatus.Fail -> Log.d(TAG, "status failed")
+                            is IoStatus.Success -> Log.d(TAG, "status succeed")
                         }
                     })
             }

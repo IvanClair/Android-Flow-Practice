@@ -31,8 +31,8 @@ constructor(private val repository: GithubRepository) : ViewModel() {
             repository.aaa().collect {
                 when (it) {
                     is IoStatus.Loading -> Log.d(TAG, "loading")
-                    is IoStatus.Failed -> Log.d(TAG, "failed")
-                    is IoStatus.Succeed -> Log.d(TAG, "succeed")
+                    is IoStatus.Fail -> Log.d(TAG, "failed")
+                    is IoStatus.Success -> Log.d(TAG, "succeed")
                 }
             }
         }

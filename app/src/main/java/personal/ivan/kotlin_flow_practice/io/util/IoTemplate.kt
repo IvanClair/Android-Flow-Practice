@@ -3,89 +3,83 @@ package personal.ivan.kotlin_flow_practice.io.util
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import retrofit2.HttpException
 
 /**
- * @property D origin data
- * @property R result
+ * Help to process IO
  */
-@ExperimentalCoroutinesApi
-abstract class IoTemplate<D, R> {
+abstract class IoTemplate<T> {
 
     // Flow of IO
-    private val ioFlow: Flow<IoStatus<R>> = flow {
+    private val ioFlow: Flow<IoStatus<T>> = flow {
         // load data from database
-        val dataFromDb = loadFromDb()
-        val passValidationFromDb = validateFromDb(d = dataFromDb)
-        if (passValidationFromDb) emit(dataFromDb!!)
+        getFromDb()?.also { emit(it) }
 
         // load data from network
-        val dataFromNetwork = loadFromNetwork()
-        when {
-            // data from network match expectation
-            validateFromNetwork(d = dataFromNetwork) -> {
-                saveToDb(d = dataFromNetwork)
-                emit(dataFromNetwork)
-            }
-
-            // throw exception if data from network has error, also loaded from database failed
-            !passValidationFromDb -> throw parseApiException(d = dataFromNetwork)
-        }
+        val data = getFromNetwork()
+        val exception = validateData(data = data)
+        if (exception == null) data.also { saveData(data = it) }.also { emit(it) }
+        else throw exception
     }
-        .map {
-            val result =
-                IoStatus.Succeed(data = convertToResult(d = it)) as IoStatus<R>
-            result
-        }
+        .map { originData -> IoStatus.Success(data = originData.also { handleData(data = it) }) as IoStatus<T> }
+        .catch { exception -> emit(IoStatus.Fail(exception = exception.parseException())) }
         .onStart { emit(IoStatus.Loading()) }
-        .catch {
-            val exceptionInfo = handleException(exception = it)
-            emit(IoStatus.Failed(exceptionInfo.first, exceptionInfo.second))
-        }
         .flowOn(Dispatchers.IO)
 
     /**
      * Call this function to start [ioFlow] as [LiveData]
      */
-    fun asLiveData(): LiveData<IoStatus<R>> = ioFlow.asLiveData()
+    fun asLiveData(): LiveData<IoStatus<T>> = ioFlow.asLiveData()
 
     /**
      * Call this function to start [ioFlow]
      */
-    fun getIoFlow(): Flow<IoStatus<R>> = ioFlow
+    fun getIoFlow(): Flow<IoStatus<T>> = ioFlow
 
     // region Override Functions
 
-    abstract suspend fun loadFromDb(): D?
+    abstract suspend fun getFromDb(): T?
 
-    abstract suspend fun validateFromDb(d: D?): Boolean
+    abstract suspend fun getFromNetwork(): T
 
-    abstract suspend fun loadFromNetwork(): D
+    abstract suspend fun validateData(data: T): IoException?
 
-    abstract suspend fun validateFromNetwork(d: D?): Boolean
+    abstract suspend fun saveData(data: T)
 
-    abstract suspend fun saveToDb(d: D)
-
-    abstract suspend fun parseApiException(d: D): ApiException
-
-    abstract suspend fun convertToResult(d: D): R
-
-    abstract suspend fun handleException(exception: Throwable): Pair<Int, String>
+    abstract suspend fun handleData(data: T)
 
     // endregion
 }
 
 /**
- * Status of IO operation
+ * Status of IO process
  */
 sealed class IoStatus<T> {
     class Loading<T> : IoStatus<T>()
-    data class Succeed<T>(val data: T) : IoStatus<T>()
-    data class Failed<T>(val code: Int, val message: String) : IoStatus<T>()
+    data class Success<T>(val data: T) : IoStatus<T>()
+    data class Fail<T>(val exception: IoException) : IoStatus<T>()
 }
 
 /**
- * Exception for IO process
+ * Exception information
  */
-data class ApiException(val code: Int, override val message: String) : Exception()
+data class IoException(val code: Int, override val message: String) : Exception() {
+    companion object {
+        fun defaultException(): IoException =
+            IoException(code = -1, message = IoException::class.java.simpleName)
+    }
+}
+
+/**
+ * Parse exception from IO process
+ */
+fun Throwable.parseException(): IoException =
+    when (this) {
+        // HTTP error
+        is HttpException -> IoException(code = code(), message = message())
+        // API error
+        is IoException -> this
+        // unexpected
+        else -> IoException(code = -1, message = javaClass.simpleName)
+    }

@@ -13,6 +13,7 @@ import personal.ivan.kotlin_flow_practice.io.model.GitHubUserSummary
     version = 1,
     exportSchema = false
 )
+@TypeConverters(DbTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun getGithubUserSummaryDao(): GithubUserSummaryDao
     abstract fun getGitHubUserDetailsDao(): GitHubUserDetailsDao
