@@ -4,21 +4,20 @@ import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ApplicationComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import personal.ivan.kotlin_flow_practice.BuildConfig
-import personal.ivan.kotlin_flow_practice.MainApplication
 import personal.ivan.kotlin_flow_practice.R
 import personal.ivan.kotlin_flow_practice.io.network.GithubService
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Singleton
 
-@InstallIn(ApplicationComponent::class)
 @Module
+@InstallIn(SingletonComponent::class)
 object RetrofitModule {
 
     @Singleton

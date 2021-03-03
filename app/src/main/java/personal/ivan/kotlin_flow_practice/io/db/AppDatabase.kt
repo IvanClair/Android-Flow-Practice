@@ -25,6 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
 
 @Dao
 interface GithubUserSummaryDao {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(dataList: List<GitHubUserSummary>)
 
@@ -39,7 +40,7 @@ interface GitHubUserDetailsDao {
     suspend fun insert(data: GitHubUserDetails)
 
     @Query("SELECT * FROM GitHubUserDetails WHERE username IN (:username)")
-    suspend fun load(username: String): GitHubUserDetails
+    suspend fun load(username: String): GitHubUserDetails?
 }
 
 // endregion

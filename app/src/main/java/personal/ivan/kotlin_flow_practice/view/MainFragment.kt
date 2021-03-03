@@ -7,14 +7,10 @@ import android.widget.Button
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import personal.ivan.kotlin_flow_practice.R
 import personal.ivan.kotlin_flow_practice.io.util.IoStatus
 import personal.ivan.kotlin_flow_practice.viewmodel.MainViewModel
 
-@FlowPreview
-@ExperimentalCoroutinesApi
 @AndroidEntryPoint
 class MainFragment : Fragment(R.layout.main_fragment) {
 
@@ -32,7 +28,6 @@ class MainFragment : Fragment(R.layout.main_fragment) {
         super.onViewCreated(view, savedInstanceState)
         initGithubUser(view = view)
         initGithubUserDetails(view = view)
-        initTry(view = view)
     }
 
     // region Github User List
@@ -45,7 +40,7 @@ class MainFragment : Fragment(R.layout.main_fragment) {
                     viewLifecycleOwner,
                     {
                         when (it) {
-                            is IoStatus.Loading -> Log.d(TAG, "status loading")
+                            is IoStatus.Loading -> Log.d(TAG, "status loading : ${it.loading}")
                             is IoStatus.Fail -> Log.d(TAG, "status failed")
                             is IoStatus.Success -> Log.d(TAG, "status succeed")
                         }
@@ -65,7 +60,7 @@ class MainFragment : Fragment(R.layout.main_fragment) {
                     viewLifecycleOwner,
                     {
                         when (it) {
-                            is IoStatus.Loading -> Log.d(TAG, "status loading")
+                            is IoStatus.Loading -> Log.d(TAG, "status loading : ${it.loading}")
                             is IoStatus.Fail -> Log.d(TAG, "status failed")
                             is IoStatus.Success -> Log.d(TAG, "status succeed")
                         }
@@ -74,10 +69,4 @@ class MainFragment : Fragment(R.layout.main_fragment) {
     }
 
     // endregion
-
-    private fun initTry(view: View) {
-        view
-            .findViewById<Button>(R.id.button3)
-            .setOnClickListener { viewModel.aaa() }
-    }
 }

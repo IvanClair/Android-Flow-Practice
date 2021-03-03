@@ -25,6 +25,6 @@ data class GitHubUserDetails(
     @field:Json(name = "site_admin") val admin: Boolean?,
     val location: String?,
     @field:Json(name = "blog") val blogUrl: String?,
-    @field:Json(name = "created_at") val createdDate: Date?,
-    @field:Json(name = "updated_at") val updateDate: Date?
+    @field:Json(name = "created_at") val createdDate: String?,
+    @field:Json(name = "updated_at") val updateDate: String?
 )

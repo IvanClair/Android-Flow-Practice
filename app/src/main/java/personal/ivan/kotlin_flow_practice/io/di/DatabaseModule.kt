@@ -12,8 +12,8 @@ import personal.ivan.kotlin_flow_practice.io.db.GitHubUserDetailsDao
 import personal.ivan.kotlin_flow_practice.io.db.GithubUserSummaryDao
 import javax.inject.Singleton
 
-@InstallIn(SingletonComponent::class)
 @Module
+@InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
     @Singleton

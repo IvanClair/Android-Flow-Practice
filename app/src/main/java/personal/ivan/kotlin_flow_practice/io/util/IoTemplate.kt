@@ -8,46 +8,54 @@ import retrofit2.HttpException
 
 /**
  * Help to process IO
+ *
+ * @property A API response
+ * @property M map to the result you want
  */
-abstract class IoTemplate<T> {
+abstract class IoTemplate<A, M> {
 
     // Flow of IO
-    private val ioFlow: Flow<IoStatus<T>> = flow {
+    private val ioFlow: Flow<IoStatus<M>> = flow {
         // load data from database
-        getFromDb()?.also { emit(it) }
+        loadFromDb()?.also { emit(value = it) }
 
         // load data from network
-        val data = getFromNetwork()
-        val exception = validateData(data = data)
-        if (exception == null) data.also { saveData(data = it) }.also { emit(it) }
-        else throw exception
+        val apiRs = loadFromNetwork()
+        apiRs
+            .takeIf { validateApiRs(a = it) }
+            // API success
+            ?.also { saveData(a = it) }
+            ?.also { emit(value = it) }
+        // API returns error
+            ?: throw parseApiException(a = apiRs)
     }
-        .map { originData -> IoStatus.Success(data = originData.also { handleData(data = it) }) as IoStatus<T> }
-        .catch { exception -> emit(IoStatus.Fail(exception = exception.parseException())) }
-        .onStart { emit(IoStatus.Loading()) }
+        .map {
+            val result = IoStatus.Success(data = convert(a = it)) as IoStatus<M>
+            result
+        }
+        .catch { e -> emit(value = IoStatus.Fail(exception = e.parseException())) }
+        .onStart { emit(value = IoStatus.Loading(loading = true)) }
+        .onCompletion { emit(value = IoStatus.Loading(loading = false)) }
         .flowOn(Dispatchers.IO)
 
     /**
      * Call this function to start [ioFlow] as [LiveData]
      */
-    fun asLiveData(): LiveData<IoStatus<T>> = ioFlow.asLiveData()
-
-    /**
-     * Call this function to start [ioFlow]
-     */
-    fun getIoFlow(): Flow<IoStatus<T>> = ioFlow
+    fun asLiveData(): LiveData<IoStatus<M>> = ioFlow.asLiveData()
 
     // region Override Functions
 
-    abstract suspend fun getFromDb(): T?
+    abstract suspend fun loadFromDb(): A?
 
-    abstract suspend fun getFromNetwork(): T
+    abstract suspend fun loadFromNetwork(): A
 
-    abstract suspend fun validateData(data: T): IoException?
+    abstract suspend fun validateApiRs(a: A): Boolean
 
-    abstract suspend fun saveData(data: T)
+    abstract suspend fun saveData(a: A)
 
-    abstract suspend fun handleData(data: T)
+    abstract suspend fun parseApiException(a: A): IoException
+
+    abstract suspend fun convert(a: A): M
 
     // endregion
 }
@@ -56,10 +64,12 @@ abstract class IoTemplate<T> {
  * Status of IO process
  */
 sealed class IoStatus<T> {
-    class Loading<T> : IoStatus<T>()
+    data class Loading<T>(val loading: Boolean) : IoStatus<T>()
     data class Success<T>(val data: T) : IoStatus<T>()
     data class Fail<T>(val exception: IoException) : IoStatus<T>()
 }
+
+// region Exception
 
 /**
  * Exception information
@@ -83,3 +93,5 @@ fun Throwable.parseException(): IoException =
         // unexpected
         else -> IoException(code = -1, message = javaClass.simpleName)
     }
+
+// endregion
